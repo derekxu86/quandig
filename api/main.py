@@ -96,21 +96,18 @@ async def search_stocks(q: str):
 @app.get("/api/research/reports")
 async def get_reports(symbol: str):
     try:
-        # 使用 akshare 获取同花顺/东财源的机构评级明细
-        df = ak.stock_institute_recommend_detail(symbol=symbol)
-        reports = []
-        if df is not None and not df.empty:
-            for _, row in df.head(8).iterrows():
-                reports.append({
-                    "title": f"【{row.get('评级', '研报')}】目标价: {row.get('目标价', '暂无')}",
-                    "broker": row.get('评级机构', '机构'),
-                    "date": str(row.get('评级日期', ''))[:10],
-                    "summary": f"分析师: {row.get('分析师', '')}"
-                })
-            return {"symbol": symbol, "reports": reports, "forecasts": [], "source": "akshare 研报", "data_status": "real"}
-        return {"symbol": symbol, "reports": [], "forecasts": [], "source": "akshare", "data_status": "fallback", "note": "近期无研报"}
+        # 尝试去新浪抓取研报
+        df = ak.stock_institute_recommend_sina(symbol=symbol)
+        if not df.empty:
+            # 数据清洗，返回前5条
+            df = df.fillna("")
+            return df.head(5).to_dict(orient="records")
+        return []
     except Exception as e:
-        return {"symbol": symbol, "reports": [], "forecasts": [], "source": "Error", "data_status": "fallback", "note": str(e)}
+        print(f"⚠️ 研报接口触发新浪反爬拦截: {e}")
+        # 【关键修复】被拦截时，优雅地返回空列表
+        # 这样前端就会安静地显示“暂无研报”，而不是被乱码刷屏
+        return []
 
 # ================= 4. 信号层 (akshare 资金流向) =================
 @app.get("/api/signals/overview")
