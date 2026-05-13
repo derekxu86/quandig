@@ -5,7 +5,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import './styles.css'
 
 // 核心修改：将前端的 API 准星对准你本地运行的 8000 端口！
-const API_BASE = 'https://reimagined-space-spork-57qqx47v4xgfrv-8000.app.github.dev/'
+const API_BASE = 'https://reimagined-space-spork-57qqx47v4xgfrv-8000.app.github.dev'
 
 async function getJson(path: string) {
   const res = await fetch(`${API_BASE}${path}`)
