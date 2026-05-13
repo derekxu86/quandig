@@ -96,17 +96,23 @@ async def search_stocks(q: str):
 @app.get("/api/research/reports")
 async def get_reports(symbol: str):
     try:
-        # 尝试去新浪抓取研报
-        df = ak.stock_institute_recommend_sina(symbol=symbol)
-        if not df.empty:
-            # 数据清洗，返回前5条
-            df = df.fillna("")
-            return df.head(5).to_dict(orient="records")
+        from mootdx.reader import Reader
+        reader = Reader.factory(market='std')
+        
+        # 自动判断沪深
+        market_code = 0 if symbol.startswith('6') else 1 
+        
+        # 通过 TCP 直接从券商底层拉取 F10 研报/评级数据
+        f10_data = reader.f10(symbol=symbol, name="投资评级", market=market_code)
+        
+        if f10_data:
+            # 清洗换行符，提取前 5 条核心评级
+            lines = [line.strip() for line in f10_data.split('\n') if line.strip()]
+            reports = [{"title": "券商最新评级", "content": line} for line in lines[:5]]
+            return reports
         return []
     except Exception as e:
-        print(f"⚠️ 研报接口触发新浪反爬拦截: {e}")
-        # 【关键修复】被拦截时，优雅地返回空列表
-        # 这样前端就会安静地显示“暂无研报”，而不是被乱码刷屏
+        print(f"⚠️ 研报接口 TCP 拉取失败: {e}")
         return []
 
 # ================= 4. 信号层 (akshare 资金流向) =================
